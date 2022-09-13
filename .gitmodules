@@ -4,3 +4,5 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/transmissions11/solmate
+[submodule "/Users/wilsoncusack/github/exponential-decay-auction/lib/solmate"]
+	branch = v7

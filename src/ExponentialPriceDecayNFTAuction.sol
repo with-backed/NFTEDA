@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 contract ExponentialPriceDecayNFTAuction {
     struct Auction {
@@ -31,7 +32,14 @@ contract ExponentialPriceDecayNFTAuction {
 
         auctionStartTime[id] = block.timestamp;
 
-        emit StartAuction(id, auction.auctionAssetID, auction.auctionAssetContract, auction.perSecondDecayWAD, auction.startPrice, auction.paymentAsset);
+        emit StartAuction(
+            id,
+            auction.auctionAssetID,
+            auction.auctionAssetContract,
+            auction.perSecondDecayWAD,
+            auction.startPrice,
+            auction.paymentAsset
+            );
     }
 
     error InvalidAuction();
@@ -40,22 +48,21 @@ contract ExponentialPriceDecayNFTAuction {
         uint256 id = auctionID(auction);
         uint256 startTime = auctionStartTime[id];
 
-        if (startTime == 0){
+        if (startTime == 0) {
             revert InvalidAuction();
         }
 
         uint256 beforeBalance = auction.paymentAsset.balanceOf(address(this));
-
-        
-
     }
 
-    function currentPrice(Auction calldata auction) pure public returns (uint256) {
-        return auction.startPrice
-        * auction.perSecondDecayWAD
+    function currentPrice(Auction calldata auction) public view returns (uint256) {
+        uint256 secondsElapsed = block.timestamp - auctionStartTime[auctionID(auction)];
+        int256 price = int256(auction.startPrice)
+            * FixedPointMathLib.powWad(int256(auction.perSecondDecayWAD), int256(secondsElapsed));
+        return (uint256(price) / FixedPointMathLib.WAD);
     }
 
-    function auctionID(Auction calldata auction) pure public returns (uint256) {
+    function auctionID(Auction calldata auction) public pure returns (uint256) {
         return uint256(keccak256(abi.encode(auction)));
     }
 }
