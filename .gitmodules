@@ -6,3 +6,6 @@
 	url = https://github.com/transmissions11/solmate
 [submodule "/Users/wilsoncusack/github/exponential-decay-auction/lib/solmate"]
 	branch = v7
+[submodule "lib/fullrange"]
+	path = lib/fullrange
+	url = https://github.com/0xTomoyo/fullrange
