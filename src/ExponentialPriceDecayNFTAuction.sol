@@ -94,12 +94,12 @@ contract ExponentialPriceDecayNFTAuction {
         return (price / FixedPointMathLib.WAD);
     }
 
+    function auctionID(Auction calldata auction) public pure returns (uint256) {
+        return uint256(keccak256(abi.encode(auction)));
+    }
+
     function toInt256(uint256 y) internal pure returns (int256 z) {
         require(y < 2 ** 255);
         z = int256(y);
-    }
-
-    function auctionID(Auction calldata auction) public pure returns (uint256) {
-        return uint256(keccak256(abi.encode(auction)));
     }
 }
