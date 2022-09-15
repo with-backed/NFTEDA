@@ -1,1 +1,2 @@
-ExponentialPriceDecayNFTAuctionTest:testCurrentPrice() (gas: 39020)
+ExponentialPriceDecayNFTAuctionTest:testCurrentPrice() (gas: 36400)
+ExponentialPriceDecayNFTAuctionTest:testPurcahseNFT() (gas: 168120)
