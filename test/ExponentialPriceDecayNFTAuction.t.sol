@@ -35,6 +35,37 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
         auctionHouse.startAuction(auction);
     }
 
+    event StartAuction(
+        uint256 indexed auctionID,
+        uint256 indexed auctionAssetID,
+        ERC721 indexed auctionAssetContract,
+        uint256 perPeriodDecayPercentWad,
+        uint256 secondsInPeriod,
+        uint256 startPrice,
+        ERC20 paymentAsset
+    );
+
+    function testStartAuctionEmitsCorrect() public {
+        vm.expectEmit(true, true, true, true);
+        uint256 newNFTId = 2;
+        auction.auctionAssetID = 2;
+        emit StartAuction(
+            auctionHouse.auctionID(auction),
+            auction.auctionAssetID,
+            auction.auctionAssetContract,
+            auction.perPeriodDecayPercentWad,
+            auction.secondsInPeriod,
+            auction.startPrice,
+            auction.paymentAsset
+        );
+        auctionHouse.startAuction(auction);
+    }
+
+    function testStartAuctionRevertsIfAlreadyStarted() public {
+        vm.expectRevert(ExponentialPriceDecayNFTAuction.AuctionExists.selector);
+        auctionHouse.startAuction(auction);
+    }
+
     /// Would be nice to fuzz, but hard to do without just repeating the same
     /// math in the contract?
     function testCurrentPrice() public {

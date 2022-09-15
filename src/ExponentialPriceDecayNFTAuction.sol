@@ -38,8 +38,14 @@ contract ExponentialPriceDecayNFTAuction {
 
     mapping(uint256 => uint256) auctionStartTime;
 
+    error AuctionExists();
+
     function startAuction(Auction calldata auction) external returns (uint256 id) {
         id = auctionID(auction);
+
+        if (auctionStartTime[id] != 0) {
+            revert AuctionExists();
+        }
 
         auctionStartTime[id] = block.timestamp;
 
