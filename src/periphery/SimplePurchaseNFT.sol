@@ -7,8 +7,18 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ExponentialPriceDecayNFTAuction} from "src/ExponentialPriceDecayNFTAuction.sol";
 
 contract SimplePurchaseNFT is ERC721TokenReceiver {
+    /// @notice used to guard onERC721Received
+    /// only has a non 0 value during a transaction
+    /// used to only accept NFTs from the auction contract being called
+    /// in the current tx
     ExponentialPriceDecayNFTAuction currentAuctionContract;
 
+    error WrongFrom();
+
+    /// @notice Purchases the NFT being sold in auction by auctionContract
+    /// @param auctionContract the ExponentialPriceDecayNFTAuction contract selling the NFT
+    /// @param auction the details of the auction
+    /// @param maxPrice the maximum the caller is willing to pay
     function purchaseNFT(
         ExponentialPriceDecayNFTAuction auctionContract,
         ExponentialPriceDecayNFTAuction.Auction calldata auction,
@@ -20,11 +30,14 @@ contract SimplePurchaseNFT is ERC721TokenReceiver {
         auctionContract.purchaseNFT(auction, maxPrice, abi.encode(msg.sender, auction.paymentAsset));
     }
 
-    error WrongCaller();
-
-    function onERC721Received(address from, address, uint256, bytes calldata data) external override returns (bytes4) {
+    function onERC721Received(address from, address, uint256, bytes calldata data)
+        external
+        virtual
+        override
+        returns (bytes4)
+    {
         if (from != address(currentAuctionContract)) {
-            revert WrongCaller();
+            revert WrongFrom();
         }
 
         (ExponentialPriceDecayNFTAuction.CallbackInfo memory info) =

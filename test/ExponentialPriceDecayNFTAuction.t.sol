@@ -6,10 +6,11 @@ import {ERC721} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
-import "../src/ExponentialPriceDecayNFTAuction.sol";
+import "src/ExponentialPriceDecayNFTAuction.sol";
 import {SimplePurchaseNFT} from "src/periphery/SimplePurchaseNFT.sol";
 import {TestERC721} from "test/mocks/TestERC721.sol";
 import {TestERC20} from "test/mocks/TestERC20.sol";
+import {PayTooLittlePurchasePeriphery} from "test/mocks/PayTooLittlePurchasePeriphery.sol";
 
 contract ExponentialPriceDecayNFTAuctionTest is Test {
     ExponentialPriceDecayNFTAuction public auctionHouse = new ExponentialPriceDecayNFTAuction();
@@ -21,19 +22,7 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
     uint256 decay = 0.9e18;
     uint256 secondsInPeriod = 1 days;
     uint256 startPrice = 1e18;
-
-    function setUp() public {
-        auction = ExponentialPriceDecayNFTAuction.Auction({
-            auctionAssetID: nftId,
-            auctionAssetContract: nft,
-            perPeriodDecayPercentWad: decay,
-            secondsInPeriod: secondsInPeriod,
-            startPrice: 1e18,
-            paymentAsset: erc20
-        });
-        nft.mint(address(auctionHouse), nftId);
-        auctionHouse.startAuction(auction);
-    }
+    address purchaser = address(0xb0b);
 
     event StartAuction(
         uint256 indexed auctionID,
@@ -44,10 +33,27 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
         uint256 startPrice,
         ERC20 paymentAsset
     );
+    event EndAuction(uint256 indexed auctionID, uint256 price);
+
+    function setUp() public {
+        auction = ExponentialPriceDecayNFTAuction.Auction({
+            auctionAssetID: nftId,
+            auctionAssetContract: nft,
+            perPeriodDecayPercentWad: decay,
+            secondsInPeriod: secondsInPeriod,
+            startPrice: startPrice,
+            paymentAsset: erc20
+        });
+        nft.mint(address(auctionHouse), nftId);
+        auctionHouse.startAuction(auction);
+
+        erc20.mint(purchaser, startPrice);
+        vm.prank(purchaser);
+        erc20.approve(address(purchasePeriphery), startPrice);
+    }
 
     function testStartAuctionEmitsCorrect() public {
         vm.expectEmit(true, true, true, true);
-        uint256 newNFTId = 2;
         auction.auctionAssetID = 2;
         emit StartAuction(
             auctionHouse.auctionID(auction),
@@ -57,7 +63,7 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
             auction.secondsInPeriod,
             auction.startPrice,
             auction.paymentAsset
-        );
+            );
         auctionHouse.startAuction(auction);
     }
 
@@ -66,9 +72,8 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
         auctionHouse.startAuction(auction);
     }
 
-    /// Would be nice to fuzz, but hard to do without just repeating the same
-    /// math in the contract?
     function testCurrentPrice() public {
+        assertEq(auctionHouse.currentPrice(auction), 1e18);
         vm.warp(block.timestamp + 1 days);
         // off by 1, precise 1e17
         assertEq(auctionHouse.currentPrice(auction), 99999999999999999);
@@ -80,13 +85,47 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
         assertEq(auctionHouse.currentPrice(auction), 999999999999999);
     }
 
-    function testPurcahseNFT() public {
-        address purchaser = address(0xb0b);
+    function testCurrentPriceRevertsIfAuctionDoesNotExist() public {
+        auction.auctionAssetID = 10;
+        vm.expectRevert(ExponentialPriceDecayNFTAuction.InvalidAuction.selector);
+        auctionHouse.currentPrice(auction);
+    }
+
+    function testPurcahseNFTEmitsEndAuction() public {
+        vm.startPrank(purchaser);
+        vm.expectEmit(true, true, true, true);
+        emit EndAuction(auctionHouse.auctionID(auction), startPrice);
+        purchasePeriphery.purchaseNFT(auctionHouse, auction, startPrice);
+    }
+
+    function testPurchaseNFTOnlyPaysCurrentPrice() public {
+        vm.startPrank(purchaser);
         vm.warp(block.timestamp + 1 days);
         uint256 price = auctionHouse.currentPrice(auction);
-        erc20.mint(purchaser, price);
+        purchasePeriphery.purchaseNFT(auctionHouse, auction, startPrice);
+        assertEq(erc20.balanceOf(purchaser), startPrice - price);
+    }
+
+    function testPurchaseNFTRevertsIfMaxPriceTooLow() public {
         vm.startPrank(purchaser);
-        erc20.approve(address(purchasePeriphery), price);
-        purchasePeriphery.purchaseNFT(auctionHouse, auction, price);
+        vm.warp(block.timestamp + 1 days);
+        uint256 price = auctionHouse.currentPrice(auction);
+        uint256 maxPrice = price - 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(ExponentialPriceDecayNFTAuction.MaxPriceTooLow.selector, price, maxPrice)
+        );
+        purchasePeriphery.purchaseNFT(auctionHouse, auction, maxPrice);
+    }
+
+    function testPurchaseNFTRevertsIfPaymentAmountTooLow() public {
+        vm.startPrank(purchaser);
+        purchasePeriphery = new PayTooLittlePurchasePeriphery();
+        erc20.approve(address(purchasePeriphery), startPrice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExponentialPriceDecayNFTAuction.InsufficientPayment.selector, startPrice - 1, startPrice
+            )
+        );
+        purchasePeriphery.purchaseNFT(auctionHouse, auction, startPrice);
     }
 }
