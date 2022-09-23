@@ -6,6 +6,13 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {SafeCast} from "v3-core/contracts/libraries/SafeCast.sol";
 
+/// @notice struct containing all stored state concerning an auction
+/// @dev this struct is unnecessary in the base case, just containing the start time
+/// @dev however in practice, the startTime does not need 256 bits and other info could be stored here
+struct AuctionState{
+    uint256 startTime;
+}
+
 contract NFTEDA {
     using SafeCast for uint256;
 
@@ -46,8 +53,8 @@ contract NFTEDA {
     );
     event EndAuction(uint256 indexed auctionID, uint256 price);
 
-    /// @notice auctionID => timestamp
-    mapping(uint256 => uint256) auctionStartTime;
+    /// @notice auctionID => AuctionState
+    mapping(uint256 => AuctionState) auctionState;
 
     error AuctionExists();
     error InvalidAuction();
@@ -62,14 +69,14 @@ contract NFTEDA {
     /// @dev assumes the nft being sold is already controlled by the auction contract
     /// @param auction The defintion of the auction
     /// @return id the id of the auction
-    function startAuction(Auction calldata auction) external returns (uint256 id) {
+    function startAuction(Auction calldata auction) external virtual returns (uint256 id) {
         id = auctionID(auction);
 
-        if (auctionStartTime[id] != 0) {
+        if (auctionStartTime(id) != 0) {
             revert AuctionExists();
         }
 
-        auctionStartTime[id] = block.timestamp;
+        auctionState[id].startTime = block.timestamp;
 
         emit StartAuction(
             id,
@@ -88,9 +95,9 @@ contract NFTEDA {
     /// @param auction The auction selling the NFT
     /// @param maxPrice The maximum the caller is willing to pay
     /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
-    function purchaseNFT(Auction calldata auction, uint256 maxPrice, bytes calldata data) external {
+    function purchaseNFT(Auction calldata auction, uint256 maxPrice, bytes calldata data) external virtual {
         uint256 id = auctionID(auction);
-        uint256 startTime = auctionStartTime[id];
+        uint256 startTime = auctionStartTime(id);
 
         if (startTime == 0) {
             revert InvalidAuction();
@@ -111,8 +118,8 @@ contract NFTEDA {
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function currentPrice(Auction calldata auction) public view returns (uint256) {
-        uint256 startTime = auctionStartTime[auctionID(auction)];
+    function currentPrice(Auction calldata auction) public view virtual returns (uint256) {
+        uint256 startTime = auctionStartTime(auctionID(auction));
         if (startTime == 0) {
             revert InvalidAuction();
         }
@@ -124,8 +131,12 @@ contract NFTEDA {
     /// @dev Derived from the auction. Identitical auctions cannot exist simultaneously
     /// @param auction The auction to get an ID for
     /// @return id the id of this auction
-    function auctionID(Auction calldata auction) public pure returns (uint256) {
+    function auctionID(Auction calldata auction) public pure virtual returns (uint256) {
         return uint256(keccak256(abi.encode(auction)));
+    }
+
+    function auctionStartTime(uint256 id) public view virtual returns (uint256) {
+        return auctionState[id].startTime;
     }
 
     /// @notice purchases the NFT being sold in `auction`
@@ -133,10 +144,10 @@ contract NFTEDA {
     /// @param auction The auction selling the NFT
     /// @param price The price the caller is expected to pay
     /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
-    function _purchaseNFT(uint256 id, uint256 price, Auction calldata auction, bytes calldata data) internal {
+    function _purchaseNFT(uint256 id, uint256 price, Auction calldata auction, bytes calldata data) internal virtual {
         uint256 beforeBalance = auction.paymentAsset.balanceOf(address(this));
 
-        delete auctionStartTime[id];
+        delete auctionState[id];
 
         // We effectively use this as a callback, via the on receive handler,
         // allowing the buyer to receive the NFT first and then provide payment,
@@ -163,7 +174,7 @@ contract NFTEDA {
     /// @param startTime The start time of the auction
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function _currentPrice(uint256 startTime, Auction calldata auction) internal view returns (uint256) {
+    function _currentPrice(uint256 startTime, Auction calldata auction) internal view virtual returns (uint256) {
         uint256 secondsElapsed = block.timestamp - startTime;
         uint256 ratio = FixedPointMathLib.divWadDown(secondsElapsed, auction.secondsInPeriod);
         uint256 percentWadRemainingPerPeriod = FixedPointMathLib.WAD - auction.perPeriodDecayPercentWad;
