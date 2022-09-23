@@ -23,9 +23,7 @@ contract SimplePurchaseNFT is ERC721TokenReceiver {
         ExponentialPriceDecayNFTAuction auctionContract,
         ExponentialPriceDecayNFTAuction.Auction calldata auction,
         uint256 maxPrice
-    )
-        external
-    {
+    ) external {
         currentAuctionContract = auctionContract;
         auctionContract.purchaseNFT(auction, maxPrice, abi.encode(msg.sender, auction.paymentAsset));
     }
