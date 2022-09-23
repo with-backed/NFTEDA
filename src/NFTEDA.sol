@@ -6,7 +6,7 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {SafeCast} from "v3-core/contracts/libraries/SafeCast.sol";
 
-contract ExponentialPriceDecayNFTAuction {
+contract NFTEDA {
     using SafeCast for uint256;
 
     /// @notice struct containing all auction info
@@ -95,8 +95,6 @@ contract ExponentialPriceDecayNFTAuction {
         if (startTime == 0) {
             revert InvalidAuction();
         }
-
-        uint256 beforeBalance = auction.paymentAsset.balanceOf(address(this));
         uint256 price = _currentPrice(startTime, auction);
 
         // price changes over time and the price the caller pays
@@ -107,25 +105,7 @@ contract ExponentialPriceDecayNFTAuction {
             revert MaxPriceTooLow(price, maxPrice);
         }
 
-        delete auctionStartTime[id];
-
-        // We effectively use this as a callback, via the on receive handler,
-        // allowing the buyer to receive the NFT first and then provide payment,
-        // meaning they could sell the NFT in some arb to provide payment.
-        // TBD if we should have a dedicated callback method that callers should implement.
-        auction.auctionAssetContract.safeTransferFrom(
-            address(this),
-            msg.sender,
-            auction.auctionAssetID,
-            abi.encode(CallbackInfo({price: price, passedData: data}))
-        );
-
-        uint256 received = auction.paymentAsset.balanceOf(address(this)) - beforeBalance;
-        if (received < price) {
-            revert InsufficientPayment(received, price);
-        }
-
-        emit EndAuction(id, price);
+        _purchaseNFT(id, price, auction, data);
     }
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
@@ -146,6 +126,35 @@ contract ExponentialPriceDecayNFTAuction {
     /// @return id the id of this auction
     function auctionID(Auction calldata auction) public pure returns (uint256) {
         return uint256(keccak256(abi.encode(auction)));
+    }
+
+    /// @notice purchases the NFT being sold in `auction`
+    /// @param id The id of the auction
+    /// @param auction The auction selling the NFT
+    /// @param price The price the caller is expected to pay
+    /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
+    function _purchaseNFT(uint256 id, uint256 price, Auction calldata auction, bytes calldata data) internal {
+        uint256 beforeBalance = auction.paymentAsset.balanceOf(address(this));
+
+        delete auctionStartTime[id];
+
+        // We effectively use this as a callback, via the on receive handler,
+        // allowing the buyer to receive the NFT first and then provide payment,
+        // meaning they could sell the NFT in some arb to provide payment.
+        // TBD if we should have a dedicated callback method that callers should implement.
+        auction.auctionAssetContract.safeTransferFrom(
+            address(this),
+            msg.sender,
+            auction.auctionAssetID,
+            abi.encode(CallbackInfo({price: price, passedData: data}))
+        );
+
+        uint256 received = auction.paymentAsset.balanceOf(address(this)) - beforeBalance;
+        if (received < price) {
+            revert InsufficientPayment(received, price);
+        }
+
+        emit EndAuction(id, price);
     }
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists

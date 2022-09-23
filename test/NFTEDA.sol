@@ -6,15 +6,15 @@ import {ERC721} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
-import "src/ExponentialPriceDecayNFTAuction.sol";
+import "src/NFTEDA.sol";
 import {SimplePurchaseNFT} from "src/periphery/SimplePurchaseNFT.sol";
 import {TestERC721} from "test/mocks/TestERC721.sol";
 import {TestERC20} from "test/mocks/TestERC20.sol";
 import {PayTooLittlePurchasePeriphery} from "test/mocks/PayTooLittlePurchasePeriphery.sol";
 
-contract ExponentialPriceDecayNFTAuctionTest is Test {
-    ExponentialPriceDecayNFTAuction public auctionHouse = new ExponentialPriceDecayNFTAuction();
-    ExponentialPriceDecayNFTAuction.Auction auction;
+contract NFTEDATest is Test {
+    NFTEDA public auctionHouse = new NFTEDA();
+    NFTEDA.Auction auction;
     TestERC721 nft = new TestERC721();
     TestERC20 erc20 = new TestERC20();
     SimplePurchaseNFT purchasePeriphery = new SimplePurchaseNFT();
@@ -36,7 +36,7 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
     event EndAuction(uint256 indexed auctionID, uint256 price);
 
     function setUp() public {
-        auction = ExponentialPriceDecayNFTAuction.Auction({
+        auction = NFTEDA.Auction({
             auctionAssetID: nftId,
             auctionAssetContract: nft,
             perPeriodDecayPercentWad: decay,
@@ -68,7 +68,7 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
     }
 
     function testStartAuctionRevertsIfAlreadyStarted() public {
-        vm.expectRevert(ExponentialPriceDecayNFTAuction.AuctionExists.selector);
+        vm.expectRevert(NFTEDA.AuctionExists.selector);
         auctionHouse.startAuction(auction);
     }
 
@@ -87,7 +87,7 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
 
     function testCurrentPriceRevertsIfAuctionDoesNotExist() public {
         auction.auctionAssetID = 10;
-        vm.expectRevert(ExponentialPriceDecayNFTAuction.InvalidAuction.selector);
+        vm.expectRevert(NFTEDA.InvalidAuction.selector);
         auctionHouse.currentPrice(auction);
     }
 
@@ -112,7 +112,7 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
         uint256 price = auctionHouse.currentPrice(auction);
         uint256 maxPrice = price - 1;
         vm.expectRevert(
-            abi.encodeWithSelector(ExponentialPriceDecayNFTAuction.MaxPriceTooLow.selector, price, maxPrice)
+            abi.encodeWithSelector(NFTEDA.MaxPriceTooLow.selector, price, maxPrice)
         );
         purchasePeriphery.purchaseNFT(auctionHouse, auction, maxPrice);
     }
@@ -123,7 +123,7 @@ contract ExponentialPriceDecayNFTAuctionTest is Test {
         erc20.approve(address(purchasePeriphery), startPrice);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ExponentialPriceDecayNFTAuction.InsufficientPayment.selector, startPrice - 1, startPrice
+                NFTEDA.InsufficientPayment.selector, startPrice - 1, startPrice
             )
         );
         purchasePeriphery.purchaseNFT(auctionHouse, auction, startPrice);

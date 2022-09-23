@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import "forge-std/Test.sol";
 
-import {ExponentialPriceDecayNFTAuction} from "src/ExponentialPriceDecayNFTAuction.sol";
+import {NFTEDA} from "src/NFTEDA.sol";
 import {SimplePurchaseNFT} from "src/periphery/SimplePurchaseNFT.sol";
 import {TestERC721} from "test/mocks/TestERC721.sol";
 import {TestERC20} from "test/mocks/TestERC20.sol";

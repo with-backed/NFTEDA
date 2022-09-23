@@ -4,28 +4,26 @@ pragma solidity >=0.8.0;
 import {ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
-import {ExponentialPriceDecayNFTAuction} from "src/ExponentialPriceDecayNFTAuction.sol";
+import {NFTEDA} from "src/NFTEDA.sol";
 
 contract SimplePurchaseNFT is ERC721TokenReceiver {
     /// @notice used to guard onERC721Received
     /// only has a non 0 value during a transaction
     /// used to only accept NFTs from the auction contract being called
     /// in the current tx
-    ExponentialPriceDecayNFTAuction currentAuctionContract;
+    NFTEDA currentAuctionContract;
 
     error WrongFrom();
 
     /// @notice Purchases the NFT being sold in auction by auctionContract
-    /// @param auctionContract the ExponentialPriceDecayNFTAuction contract selling the NFT
+    /// @param auctionContract the NFTEDA contract selling the NFT
     /// @param auction the details of the auction
     /// @param maxPrice the maximum the caller is willing to pay
     function purchaseNFT(
-        ExponentialPriceDecayNFTAuction auctionContract,
-        ExponentialPriceDecayNFTAuction.Auction calldata auction,
+        NFTEDA auctionContract,
+        NFTEDA.Auction calldata auction,
         uint256 maxPrice
-    )
-        external
-    {
+    ) external {
         currentAuctionContract = auctionContract;
         auctionContract.purchaseNFT(auction, maxPrice, abi.encode(msg.sender, auction.paymentAsset));
     }
@@ -40,8 +38,8 @@ contract SimplePurchaseNFT is ERC721TokenReceiver {
             revert WrongFrom();
         }
 
-        (ExponentialPriceDecayNFTAuction.CallbackInfo memory info) =
-            abi.decode(data, (ExponentialPriceDecayNFTAuction.CallbackInfo));
+        (NFTEDA.CallbackInfo memory info) =
+            abi.decode(data, (NFTEDA.CallbackInfo));
         (address payer, ERC20 asset) = abi.decode(info.passedData, (address, ERC20));
 
         delete currentAuctionContract;
