@@ -19,11 +19,7 @@ contract SimplePurchaseNFT is ERC721TokenReceiver {
     /// @param auctionContract the NFTEDA contract selling the NFT
     /// @param auction the details of the auction
     /// @param maxPrice the maximum the caller is willing to pay
-    function purchaseNFT(
-        NFTEDA auctionContract,
-        NFTEDA.Auction calldata auction,
-        uint256 maxPrice
-    ) external {
+    function purchaseNFT(NFTEDA auctionContract, NFTEDA.Auction calldata auction, uint256 maxPrice) external {
         currentAuctionContract = auctionContract;
         auctionContract.purchaseNFT(auction, maxPrice, abi.encode(msg.sender, auction.paymentAsset));
     }
@@ -38,8 +34,7 @@ contract SimplePurchaseNFT is ERC721TokenReceiver {
             revert WrongFrom();
         }
 
-        (NFTEDA.CallbackInfo memory info) =
-            abi.decode(data, (NFTEDA.CallbackInfo));
+        (NFTEDA.CallbackInfo memory info) = abi.decode(data, (NFTEDA.CallbackInfo));
         (address payer, ERC20 asset) = abi.decode(info.passedData, (address, ERC20));
 
         delete currentAuctionContract;

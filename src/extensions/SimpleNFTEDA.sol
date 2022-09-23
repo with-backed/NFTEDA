@@ -1,28 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-
 import {NFTEDA} from "src/NFTEDA.sol";
 
-contract NFTEDAStarterIncentive is NFTEDA {
-    struct AuctionState{
-        uint96 startTime;
-        address starter;
-    }
-
-    /// @notice The percent discount the creator of an auction should
-    /// receive, compared to the current price
-    /// 1e18 = 100%
-    uint256 public immutable auctionCreatorDiscountPercentWad;
-    uint256 internal immutable _pricePercentAfterDiscount;
-
-    mapping(uint256 => AuctionState) public auctionState;
-
-    constructor(uint256 _auctionCreatorDiscountPercentWad) {
-        auctionCreatorDiscountPercentWad = _auctionCreatorDiscountPercentWad;
-        _pricePercentAfterDiscount = FixedPointMathLib.WAD - _auctionCreatorDiscountPercentWad;
-    }
+contract SimpleNFTEDA is NFTEDA {
+    mapping(uint256 => uint256) internal _auctionStartTime;
 
     /// @notice Creates an auction defined by the passed `auction`
     /// @dev assumes the nft being sold is already controlled by the auction contract
@@ -31,12 +13,11 @@ contract NFTEDAStarterIncentive is NFTEDA {
     function startAuction(Auction calldata auction) external virtual override returns (uint256 id) {
         id = auctionID(auction);
 
-        if (auctionState[id].startTime != 0) {
+        if (_auctionStartTime[id] != 0) {
             revert AuctionExists();
         }
 
-        auctionState[id].startTime = uint96(block.timestamp);
-        auctionState[id].starter = msg.sender;
+        _auctionStartTime[id] = block.timestamp;
 
         _startAuction(id, auction);
     }
@@ -49,17 +30,12 @@ contract NFTEDAStarterIncentive is NFTEDA {
     /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
     function purchaseNFT(Auction calldata auction, uint256 maxPrice, bytes calldata data) external virtual override {
         uint256 id = auctionID(auction);
-        uint256 startTime = auctionState[id].startTime;
-        address starter = auctionState[id].starter;
+        uint256 startTime = _auctionStartTime[id];
 
         if (startTime == 0) {
             revert InvalidAuction();
         }
         uint256 price = _currentPrice(startTime, auction);
-
-        if (msg.sender == starter) {
-            price = FixedPointMathLib.mulWadUp(price, _pricePercentAfterDiscount);
-        }
 
         if (price > maxPrice) {
             revert MaxPriceTooLow(price, maxPrice);
@@ -69,6 +45,6 @@ contract NFTEDAStarterIncentive is NFTEDA {
     }
 
     function auctionStartTime(uint256 id) public view override returns (uint256) {
-        return auctionState[id].startTime;
+        return _auctionStartTime[id];
     }
 }
