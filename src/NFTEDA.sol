@@ -81,7 +81,23 @@ abstract contract NFTEDA {
     /// @notice purchases the NFT being sold in `auction`, reverts if current auction price exceed maxPrice
     /// @param auction The auction selling the NFT
     /// @param maxPrice The maximum the caller is willing to pay
-    function purchaseNFT(Auction calldata auction, uint256 maxPrice) external virtual;
+    function purchaseNFT(Auction calldata auction, uint256 maxPrice) external virtual {
+        uint256 id = auctionID(auction);
+        uint256 startTime = auctionStartTime(id);
+
+        if (startTime == 0) {
+            revert InvalidAuction();
+        }
+        uint256 price = _currentPrice(startTime, auction);
+
+        if (price > maxPrice) {
+            revert MaxPriceTooLow(price, maxPrice);
+        }
+
+        _clearAuctionState(id);
+
+        _purchaseNFT(id, price, auction);
+    }
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @param auction The auction for which the caller wants to know the current price
@@ -104,11 +120,12 @@ abstract contract NFTEDA {
         return uint256(keccak256(abi.encode(auction)));
     }
 
+    /// @notice Returns the time at which startAuction was most recently successfully called for the given auction id
+    /// @param id The id of the auction
     function auctionStartTime(uint256 id) public view virtual returns (uint256);
 
     /// @notice purchases the NFT being sold in `auction`
-    /// @dev Does not "pull" payment but expects payment to be received after safeTransferFrom call.
-    /// @dev i.e. does not work if msg.sender is EOA.
+    /// @dev Requires msg.sender has approved this contract to pull price amount of payment asset
     /// @param id The id of the auction
     /// @param auction The auction selling the NFT
     /// @param price The price the caller is expected to pay
@@ -124,7 +141,15 @@ abstract contract NFTEDA {
         emit EndAuction(id, price);
     }
 
+    /// @notice Sets the time at which the auction was started
+    /// @dev abstracted to a function to allow developer some freedom with how to store auction state
+    /// @param id The id of the auction
     function _setAuctionStartTime(uint256 id) internal virtual;
+
+    /// @notice Clears all stored state for the auction
+    /// @dev abstracted to a function to allow developer some freedom with how to store auction state
+    /// @param id The id of the auction
+    function _clearAuctionState(uint256 id) internal virtual;
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @dev startTime is passed, optimized for cases where the auctionId has already been computed

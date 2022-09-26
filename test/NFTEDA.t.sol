@@ -77,6 +77,7 @@ abstract contract NFTEDATest is Test {
     }
 
     function testCurrentPrice() public {
+        vm.startPrank(address(1));
         assertEq(auctionContract.currentPrice(auction), 1e18);
         vm.warp(block.timestamp + 1 days);
         // off by 1, precise 1e17

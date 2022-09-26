@@ -24,34 +24,6 @@ contract NFTEDAStarterIncentive is NFTEDA {
         _pricePercentAfterDiscount = FixedPointMathLib.WAD - _auctionCreatorDiscountPercentWad;
     }
 
-    /// @notice purchases the NFT being sold in `auction`, reverts if current auction price exceed maxPrice
-    /// @dev Does not "pull" payment but expects payment to be received after safeTransferFrom call.
-    /// @dev i.e. does not work if msg.sender is EOA.
-    /// @param auction The auction selling the NFT
-    /// @param maxPrice The maximum the caller is willing to pay
-    function purchaseNFT(Auction calldata auction, uint256 maxPrice) external virtual override {
-        uint256 id = auctionID(auction);
-        uint256 startTime = auctionState[id].startTime;
-        address starter = auctionState[id].starter;
-
-        if (startTime == 0) {
-            revert InvalidAuction();
-        }
-        uint256 price = _currentPrice(startTime, auction);
-
-        if (msg.sender == starter) {
-            price = FixedPointMathLib.mulWadUp(price, _pricePercentAfterDiscount);
-        }
-
-        if (price > maxPrice) {
-            revert MaxPriceTooLow(price, maxPrice);
-        }
-
-        delete auctionState[id];
-
-        _purchaseNFT(id, price, auction);
-    }
-
     function auctionStartTime(uint256 id) public view override returns (uint256) {
         return auctionState[id].startTime;
     }
@@ -61,5 +33,21 @@ contract NFTEDAStarterIncentive is NFTEDA {
             startTime: uint96(block.timestamp),
             starter: msg.sender
         });
+    }
+
+    function _clearAuctionState(uint256 id) internal virtual override {
+        delete auctionState[id];
+    }
+
+    function _currentPrice(uint256 startTime, Auction calldata auction) internal view virtual override returns (uint256) {
+        uint256 price = super._currentPrice(startTime, auction);
+
+        /// TODO having to recompute the ID here on the purchaseNFT call path is not idea
+        /// but it saves us copying all the boilter plate. Maybe change later.
+        if (msg.sender == auctionState[auctionID(auction)].starter) {
+            price = FixedPointMathLib.mulWadUp(price, _pricePercentAfterDiscount);
+        }
+
+        return price;
     }
 }
