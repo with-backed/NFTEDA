@@ -58,7 +58,25 @@ abstract contract NFTEDA {
     /// @dev assumes the nft being sold is already controlled by the auction contract
     /// @param auction The defintion of the auction
     /// @return id the id of the auction
-    function startAuction(Auction calldata auction) external virtual returns (uint256 id);
+    function startAuction(Auction calldata auction) external virtual returns (uint256 id) {
+        id = auctionID(auction);
+
+        if (auctionStartTime(id) != 0) {
+            revert AuctionExists();
+        }
+
+        _setAuctionStartTime(id);
+
+        emit StartAuction(
+            id,
+            auction.auctionAssetID,
+            auction.auctionAssetContract,
+            auction.perPeriodDecayPercentWad,
+            auction.secondsInPeriod,
+            auction.startPrice,
+            auction.paymentAsset
+            );
+    }
 
     /// @notice purchases the NFT being sold in `auction`, reverts if current auction price exceed maxPrice
     /// @param auction The auction selling the NFT
@@ -89,18 +107,6 @@ abstract contract NFTEDA {
 
     function auctionStartTime(uint256 id) public view virtual returns (uint256);
 
-    function _startAuction(uint256 id, Auction calldata auction) internal {
-        emit StartAuction(
-            id,
-            auction.auctionAssetID,
-            auction.auctionAssetContract,
-            auction.perPeriodDecayPercentWad,
-            auction.secondsInPeriod,
-            auction.startPrice,
-            auction.paymentAsset
-            );
-    }
-
     /// @notice purchases the NFT being sold in `auction`
     /// @dev Does not "pull" payment but expects payment to be received after safeTransferFrom call.
     /// @dev i.e. does not work if msg.sender is EOA.
@@ -129,6 +135,8 @@ abstract contract NFTEDA {
 
         emit EndAuction(id, price);
     }
+
+    function _setAuctionStartTime(uint256 id) internal virtual;
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @dev startTime is passed, optimized for cases where the auctionId has already been computed

@@ -24,23 +24,6 @@ contract NFTEDAStarterIncentive is NFTEDA {
         _pricePercentAfterDiscount = FixedPointMathLib.WAD - _auctionCreatorDiscountPercentWad;
     }
 
-    /// @notice Creates an auction defined by the passed `auction`
-    /// @dev assumes the nft being sold is already controlled by the auction contract
-    /// @param auction The defintion of the auction
-    /// @return id the id of the auction
-    function startAuction(Auction calldata auction) external virtual override returns (uint256 id) {
-        id = auctionID(auction);
-
-        if (auctionState[id].startTime != 0) {
-            revert AuctionExists();
-        }
-
-        auctionState[id].startTime = uint96(block.timestamp);
-        auctionState[id].starter = msg.sender;
-
-        _startAuction(id, auction);
-    }
-
     /// @notice purchases the NFT being sold in `auction`, reverts if current auction price exceed maxPrice
     /// @dev Does not "pull" payment but expects payment to be received after safeTransferFrom call.
     /// @dev i.e. does not work if msg.sender is EOA.
@@ -70,5 +53,12 @@ contract NFTEDAStarterIncentive is NFTEDA {
 
     function auctionStartTime(uint256 id) public view override returns (uint256) {
         return auctionState[id].startTime;
+    }
+
+    function _setAuctionStartTime(uint256 id) internal override {
+        auctionState[id] = AuctionState({
+            startTime: uint96(block.timestamp),
+            starter: msg.sender
+        });
     }
 }
