@@ -49,7 +49,7 @@ abstract contract NFTEDATest is Test {
 
         erc20.mint(purchaser, startPrice);
         vm.prank(purchaser);
-        erc20.approve(address(purchasePeriphery), startPrice);
+        erc20.approve(address(auctionContract), startPrice);
     }
 
     function testStartAuctionEmitsCorrect() public {
@@ -89,14 +89,14 @@ abstract contract NFTEDATest is Test {
         vm.startPrank(purchaser);
         vm.expectEmit(true, true, true, true);
         emit EndAuction(auctionContract.auctionID(auction), startPrice);
-        purchasePeriphery.purchaseNFT(auctionContract, auction, startPrice);
+        auctionContract.purchaseNFT(auction, startPrice);
     }
 
     function testPurchaseNFTOnlyPaysCurrentPrice() public {
         vm.startPrank(purchaser);
         vm.warp(block.timestamp + 1 days);
         uint256 price = auctionContract.currentPrice(auction);
-        purchasePeriphery.purchaseNFT(auctionContract, auction, startPrice);
+        auctionContract.purchaseNFT(auction, startPrice);
         assertEq(erc20.balanceOf(purchaser), startPrice - price);
     }
 
@@ -106,15 +106,7 @@ abstract contract NFTEDATest is Test {
         uint256 price = auctionContract.currentPrice(auction);
         uint256 maxPrice = price - 1;
         vm.expectRevert(abi.encodeWithSelector(NFTEDA.MaxPriceTooLow.selector, price, maxPrice));
-        purchasePeriphery.purchaseNFT(auctionContract, auction, maxPrice);
-    }
-
-    function testPurchaseNFTRevertsIfPaymentAmountTooLow() public {
-        vm.startPrank(purchaser);
-        purchasePeriphery = new PayTooLittlePurchasePeriphery();
-        erc20.approve(address(purchasePeriphery), startPrice);
-        vm.expectRevert(abi.encodeWithSelector(NFTEDA.InsufficientPayment.selector, startPrice - 1, startPrice));
-        purchasePeriphery.purchaseNFT(auctionContract, auction, startPrice);
+        auctionContract.purchaseNFT(auction, maxPrice);
     }
 
     function _createAuctionContract() internal virtual;

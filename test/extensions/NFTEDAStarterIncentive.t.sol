@@ -12,15 +12,14 @@ contract NFTEDAStarterIncentiveTest is NFTEDATest {
     }
 
     function testCreatorCanPayLowerPrice() public {
+        vm.startPrank(purchaser);
         nft.mint(address(auctionContract), nftId + 1);
         auction.auctionAssetID = nftId + 1;
-        vm.prank(address(purchasePeriphery));
         auctionContract.startAuction(auction);
         uint256 price = auctionContract.currentPrice(auction);
         uint256 discountPrice = FixedPointMathLib.mulWadUp(price, FixedPointMathLib.WAD - discount);
-        (, address starter) = NFTEDAStarterIncentive(address(auctionContract)).auctionState(auctionContract.auctionID(auction));
         erc20.mint(address(this), discountPrice);
-        erc20.approve(address(purchasePeriphery), discountPrice);
-        purchasePeriphery.purchaseNFT(auctionContract, auction, discountPrice);
+        erc20.approve(address(auctionContract), discountPrice);
+        auctionContract.purchaseNFT(auction, discountPrice);
     }
 }

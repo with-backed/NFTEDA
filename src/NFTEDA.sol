@@ -81,8 +81,7 @@ abstract contract NFTEDA {
     /// @notice purchases the NFT being sold in `auction`, reverts if current auction price exceed maxPrice
     /// @param auction The auction selling the NFT
     /// @param maxPrice The maximum the caller is willing to pay
-    /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
-    function purchaseNFT(Auction calldata auction, uint256 maxPrice, bytes calldata data) external virtual;
+    function purchaseNFT(Auction calldata auction, uint256 maxPrice) external virtual;
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @param auction The auction for which the caller wants to know the current price
@@ -113,25 +112,14 @@ abstract contract NFTEDA {
     /// @param id The id of the auction
     /// @param auction The auction selling the NFT
     /// @param price The price the caller is expected to pay
-    /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
-    function _purchaseNFT(uint256 id, uint256 price, Auction calldata auction, bytes calldata data) internal virtual {
-        uint256 beforeBalance = auction.paymentAsset.balanceOf(address(this));
-
-        // We effectively use this as a callback, via the on receive handler,
-        // allowing the buyer to receive the NFT first and then provide payment,
-        // meaning they could sell the NFT in some arb to provide payment.
-        // TBD if we should have a dedicated callback method that callers should implement.
+    function _purchaseNFT(uint256 id, uint256 price, Auction calldata auction) internal virtual {
         auction.auctionAssetContract.safeTransferFrom(
             address(this),
             msg.sender,
-            auction.auctionAssetID,
-            abi.encode(CallbackInfo({price: price, passedData: data}))
+            auction.auctionAssetID
         );
 
-        uint256 received = auction.paymentAsset.balanceOf(address(this)) - beforeBalance;
-        if (received < price) {
-            revert InsufficientPayment(received, price);
-        }
+        auction.paymentAsset.transferFrom(msg.sender, address(this), price);
 
         emit EndAuction(id, price);
     }

@@ -11,8 +11,7 @@ contract SimpleNFTEDA is NFTEDA {
     /// @dev i.e. does not work if msg.sender is EOA.
     /// @param auction The auction selling the NFT
     /// @param maxPrice The maximum the caller is willing to pay
-    /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
-    function purchaseNFT(Auction calldata auction, uint256 maxPrice, bytes calldata data) external virtual override {
+    function purchaseNFT(Auction calldata auction, uint256 maxPrice) external virtual override {
         uint256 id = auctionID(auction);
         uint256 startTime = _auctionStartTime[id];
 
@@ -25,7 +24,7 @@ contract SimpleNFTEDA is NFTEDA {
             revert MaxPriceTooLow(price, maxPrice);
         }
 
-        _purchaseNFT(id, price, auction, data);
+        _purchaseNFT(id, price, auction);
     }
 
     function auctionStartTime(uint256 id) public view override returns (uint256) {

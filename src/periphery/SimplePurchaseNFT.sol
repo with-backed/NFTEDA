@@ -21,7 +21,7 @@ contract SimplePurchaseNFT is ERC721TokenReceiver {
     /// @param maxPrice the maximum the caller is willing to pay
     function purchaseNFT(NFTEDA auctionContract, NFTEDA.Auction calldata auction, uint256 maxPrice) external {
         currentAuctionContract = auctionContract;
-        auctionContract.purchaseNFT(auction, maxPrice, abi.encode(msg.sender, auction.paymentAsset));
+        auctionContract.purchaseNFT(auction, maxPrice);
     }
 
     function onERC721Received(address from, address, uint256, bytes calldata data)
