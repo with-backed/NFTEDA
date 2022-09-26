@@ -47,6 +47,8 @@ contract NFTEDAStarterIncentive is NFTEDA {
             revert MaxPriceTooLow(price, maxPrice);
         }
 
+        delete auctionState[id];
+
         _purchaseNFT(id, price, auction);
     }
 

@@ -11,7 +11,16 @@ contract NFTEDAStarterIncentiveTest is NFTEDATest {
         auctionContract = new NFTEDAStarterIncentive(discount);
     }
 
-    function testCreatorCanPayLowerPrice() public {
+    function testStartAuctionSavesStarter() public {
+        vm.warp(1 weeks);
+        auction.auctionAssetID = 2;
+        auctionContract.startAuction(auction);
+        (uint256 startTime, address starter) = NFTEDAStarterIncentive(address(auctionContract)).auctionState(auctionContract.auctionID(auction));
+        assertEq(startTime, 1 weeks);
+        assertEq(starter, address(this));
+    }
+
+    function testPurchaseNFTAllowsStarterLowerPrice() public {
         vm.startPrank(purchaser);
         nft.mint(address(auctionContract), nftId + 1);
         auction.auctionAssetID = nftId + 1;
@@ -21,5 +30,13 @@ contract NFTEDAStarterIncentiveTest is NFTEDATest {
         erc20.mint(address(this), discountPrice);
         erc20.approve(address(auctionContract), discountPrice);
         auctionContract.purchaseNFT(auction, discountPrice);
+    }
+
+    function testPurchaseNFTClearsState() public {
+        vm.prank(purchaser);
+        auctionContract.purchaseNFT(auction, startPrice);
+        (uint256 startTime, address starter) = NFTEDAStarterIncentive(address(auctionContract)).auctionState(auctionContract.auctionID(auction));
+        assertEq(startTime, 0);
+        assertEq(starter, address(0));
     }
 }

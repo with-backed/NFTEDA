@@ -24,6 +24,8 @@ contract SimpleNFTEDA is NFTEDA {
             revert MaxPriceTooLow(price, maxPrice);
         }
 
+        delete _auctionStartTime[id];
+
         _purchaseNFT(id, price, auction);
     }
 

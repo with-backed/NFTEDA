@@ -6,17 +6,14 @@ import {ERC721} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import "src/NFTEDA.sol";
-import {SimplePurchaseNFT} from "src/periphery/SimplePurchaseNFT.sol";
 import {TestERC721} from "test/mocks/TestERC721.sol";
 import {TestERC20} from "test/mocks/TestERC20.sol";
-import {PayTooLittlePurchasePeriphery} from "test/mocks/PayTooLittlePurchasePeriphery.sol";
 
 abstract contract NFTEDATest is Test {
     NFTEDA public auctionContract;
     NFTEDA.Auction auction;
     TestERC721 nft = new TestERC721();
     TestERC20 erc20 = new TestERC20();
-    SimplePurchaseNFT purchasePeriphery = new SimplePurchaseNFT();
     uint256 nftId = 1;
     uint256 decay = 0.9e18;
     uint256 secondsInPeriod = 1 days;
@@ -67,6 +64,13 @@ abstract contract NFTEDATest is Test {
         auctionContract.startAuction(auction);
     }
 
+    function testStartAuctionSavesStartTime() public {
+        vm.warp(1 weeks);
+        auction.auctionAssetID = 2;
+        auctionContract.startAuction(auction);
+        assertEq(auctionContract.auctionStartTime(auctionContract.auctionID(auction)), 1 weeks);
+    }
+
     function testStartAuctionRevertsIfAlreadyStarted() public {
         vm.expectRevert(NFTEDA.AuctionExists.selector);
         auctionContract.startAuction(auction);
@@ -107,6 +111,19 @@ abstract contract NFTEDATest is Test {
         uint256 maxPrice = price - 1;
         vm.expectRevert(abi.encodeWithSelector(NFTEDA.MaxPriceTooLow.selector, price, maxPrice));
         auctionContract.purchaseNFT(auction, maxPrice);
+    }
+
+    function testPurchaseNFTRevertsIfTransferFails() public {
+        vm.startPrank(purchaser);
+        erc20.approve(address(auctionContract), startPrice - 1);
+        vm.expectRevert(stdError.arithmeticError);
+        auctionContract.purchaseNFT(auction, startPrice);
+    }
+
+    function testPurchaseNFTClearsStartTime() public {
+        vm.prank(purchaser);
+        auctionContract.purchaseNFT(auction, startPrice);
+        assertEq(auctionContract.auctionStartTime(auctionContract.auctionID(auction)), 0);
     }
 
     function _createAuctionContract() internal virtual;
