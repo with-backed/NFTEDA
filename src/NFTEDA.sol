@@ -3,12 +3,11 @@ pragma solidity >=0.8.0;
 
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {SafeCast} from "v3-core/contracts/libraries/SafeCast.sol";
 
-contract ExponentialPriceDecayNFTAuction {
-    using SafeCast for uint256;
+import {EDAPrice} from "src/libraries/EDAPrice.sol";
 
+abstract contract NFTEDA {
     /// @notice struct containing all auction info
     /// @dev this struct is never stored, only a hash of it
     struct Auction {
@@ -46,9 +45,6 @@ contract ExponentialPriceDecayNFTAuction {
     );
     event EndAuction(uint256 indexed auctionID, uint256 price);
 
-    /// @notice auctionID => timestamp
-    mapping(uint256 => uint256) auctionStartTime;
-
     error AuctionExists();
     error InvalidAuction();
     /// @param received The amount of payment received
@@ -62,14 +58,14 @@ contract ExponentialPriceDecayNFTAuction {
     /// @dev assumes the nft being sold is already controlled by the auction contract
     /// @param auction The defintion of the auction
     /// @return id the id of the auction
-    function startAuction(Auction calldata auction) external returns (uint256 id) {
+    function startAuction(Auction calldata auction) external virtual returns (uint256 id) {
         id = auctionID(auction);
 
-        if (auctionStartTime[id] != 0) {
+        if (auctionStartTime(id) != 0) {
             revert AuctionExists();
         }
 
-        auctionStartTime[id] = block.timestamp;
+        _setAuctionStartTime(id);
 
         emit StartAuction(
             id,
@@ -83,36 +79,32 @@ contract ExponentialPriceDecayNFTAuction {
     }
 
     /// @notice purchases the NFT being sold in `auction`, reverts if current auction price exceed maxPrice
-    /// @dev Does not "pull" payment but expects payment to be received after safeTransferFrom call.
-    /// @dev i.e. does not work if msg.sender is EOA.
     /// @param auction The auction selling the NFT
     /// @param maxPrice The maximum the caller is willing to pay
-    /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
-    function purchaseNFT(Auction calldata auction, uint256 maxPrice, bytes calldata data) external {
+    function purchaseNFT(Auction calldata auction, uint256 maxPrice) external virtual {
         uint256 id = auctionID(auction);
-        uint256 startTime = auctionStartTime[id];
+        uint256 startTime = auctionStartTime(id);
 
         if (startTime == 0) {
             revert InvalidAuction();
         }
         uint256 price = _currentPrice(startTime, auction);
 
-        // price changes over time and the price the caller pays
-        // will depend on when their tx is included in a block
-        // passing a max price offers a nice sanity check on
-        // what you pay
         if (price > maxPrice) {
             revert MaxPriceTooLow(price, maxPrice);
         }
 
-        _purchaseNFT(id, price, auction, data);
+        _clearAuctionState(id);
+
+        _purchaseNFT(id, price, auction);
     }
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function currentPrice(Auction calldata auction) public view returns (uint256) {
-        uint256 startTime = auctionStartTime[auctionID(auction)];
+    function currentPrice(Auction calldata auction) public view virtual returns (uint256) {
+        uint256 id = auctionID(auction);
+        uint256 startTime = auctionStartTime(id);
         if (startTime == 0) {
             revert InvalidAuction();
         }
@@ -124,38 +116,40 @@ contract ExponentialPriceDecayNFTAuction {
     /// @dev Derived from the auction. Identitical auctions cannot exist simultaneously
     /// @param auction The auction to get an ID for
     /// @return id the id of this auction
-    function auctionID(Auction calldata auction) public pure returns (uint256) {
+    function auctionID(Auction calldata auction) public pure virtual returns (uint256) {
         return uint256(keccak256(abi.encode(auction)));
     }
 
+    /// @notice Returns the time at which startAuction was most recently successfully called for the given auction id
+    /// @param id The id of the auction
+    function auctionStartTime(uint256 id) public view virtual returns (uint256);
+
     /// @notice purchases the NFT being sold in `auction`
+    /// @dev Requires msg.sender has approved this contract to pull price amount of payment asset
     /// @param id The id of the auction
     /// @param auction The auction selling the NFT
     /// @param price The price the caller is expected to pay
-    /// @param data arbitrary data, passed back to caller, along with the amount to pay, in an encoded CallbackInfo
-    function _purchaseNFT(uint256 id, uint256 price, Auction calldata auction, bytes calldata data) internal {
-        uint256 beforeBalance = auction.paymentAsset.balanceOf(address(this));
-
-        delete auctionStartTime[id];
-
-        // We effectively use this as a callback, via the on receive handler,
-        // allowing the buyer to receive the NFT first and then provide payment,
-        // meaning they could sell the NFT in some arb to provide payment.
-        // TBD if we should have a dedicated callback method that callers should implement.
+    function _purchaseNFT(uint256 id, uint256 price, Auction calldata auction) internal virtual {
         auction.auctionAssetContract.safeTransferFrom(
             address(this),
             msg.sender,
-            auction.auctionAssetID,
-            abi.encode(CallbackInfo({price: price, passedData: data}))
+            auction.auctionAssetID
         );
 
-        uint256 received = auction.paymentAsset.balanceOf(address(this)) - beforeBalance;
-        if (received < price) {
-            revert InsufficientPayment(received, price);
-        }
+        auction.paymentAsset.transferFrom(msg.sender, address(this), price);
 
         emit EndAuction(id, price);
     }
+
+    /// @notice Sets the time at which the auction was started
+    /// @dev abstracted to a function to allow developer some freedom with how to store auction state
+    /// @param id The id of the auction
+    function _setAuctionStartTime(uint256 id) internal virtual;
+
+    /// @notice Clears all stored state for the auction
+    /// @dev abstracted to a function to allow developer some freedom with how to store auction state
+    /// @param id The id of the auction
+    function _clearAuctionState(uint256 id) internal virtual;
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @dev startTime is passed, optimized for cases where the auctionId has already been computed
@@ -163,13 +157,9 @@ contract ExponentialPriceDecayNFTAuction {
     /// @param startTime The start time of the auction
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function _currentPrice(uint256 startTime, Auction calldata auction) internal view returns (uint256) {
-        uint256 secondsElapsed = block.timestamp - startTime;
-        uint256 ratio = FixedPointMathLib.divWadDown(secondsElapsed, auction.secondsInPeriod);
-        uint256 percentWadRemainingPerPeriod = FixedPointMathLib.WAD - auction.perPeriodDecayPercentWad;
-        int256 multiplier = FixedPointMathLib.powWad(percentWadRemainingPerPeriod.toInt256(), ratio.toInt256());
-        // casting to uint256 is safe because percentWadRemainingPerPeriod is non negative
-        uint256 price = auction.startPrice * uint256(multiplier);
-        return (price / FixedPointMathLib.WAD);
+    function _currentPrice(uint256 startTime, Auction calldata auction) internal view virtual returns (uint256) {
+        return EDAPrice.currentPrice(
+            auction.startPrice, block.timestamp - startTime, auction.secondsInPeriod, auction.perPeriodDecayPercentWad
+        );
     }
 }
