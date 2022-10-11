@@ -38,12 +38,12 @@ contract NFTEDAStarterIncentive is NFTEDA {
         delete auctionState[id];
     }
 
-    function _currentPrice(uint256 startTime, Auction calldata auction) internal view virtual override returns (uint256) {
-        uint256 price = super._currentPrice(startTime, auction);
+    function _currentPrice(uint256 id, uint256 startTime, Auction calldata auction) internal view virtual override returns (uint256) {
+        uint256 price = super._currentPrice(id, startTime, auction);
 
         /// TODO having to recompute the ID here on the purchaseNFT call path is not idea
         /// but it saves us copying all the boilter plate. Maybe change later.
-        if (msg.sender == auctionState[auctionID(auction)].starter) {
+        if (msg.sender == auctionState[id].starter) {
             price = FixedPointMathLib.mulWadUp(price, _pricePercentAfterDiscount);
         }
 

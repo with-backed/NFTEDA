@@ -82,7 +82,7 @@ abstract contract NFTEDA {
         if (startTime == 0) {
             revert InvalidAuction();
         }
-        uint256 price = _currentPrice(startTime, auction);
+        uint256 price = _currentPrice(id, startTime, auction);
 
         if (price > maxPrice) {
             revert MaxPriceTooLow(price, maxPrice);
@@ -103,7 +103,7 @@ abstract contract NFTEDA {
             revert InvalidAuction();
         }
 
-        return _currentPrice(startTime, auction);
+        return _currentPrice(id, startTime, auction);
     }
 
     /// @notice Returns a uint256 used to identify the auction
@@ -151,7 +151,7 @@ abstract contract NFTEDA {
     /// @param startTime The start time of the auction
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function _currentPrice(uint256 startTime, Auction calldata auction) internal view virtual returns (uint256) {
+    function _currentPrice(uint256 id, uint256 startTime, Auction calldata auction) internal view virtual returns (uint256) {
         return EDAPrice.currentPrice(
             auction.startPrice, block.timestamp - startTime, auction.secondsInPeriod, auction.perPeriodDecayPercentWad
         );
