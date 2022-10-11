@@ -11,6 +11,8 @@ abstract contract NFTEDA {
     /// @notice struct containing all auction info
     /// @dev this struct is never stored, only a hash of it
     struct Auction {
+        // the nft owner
+        address nftOwner;
         // the nft token id
         uint256 auctionAssetID;
         // the nft contract address
@@ -24,14 +26,6 @@ abstract contract NFTEDA {
         uint256 startPrice;
         // the payment asset
         ERC20 paymentAsset;
-    }
-
-    /// @notice this struct is encoded and passed to the caller of purchaseNFT
-    struct CallbackInfo {
-        // the current auction price, i.e. the amount to pay
-        uint256 price;
-        // any data the caller paseed to purchaseNFT
-        bytes passedData;
     }
 
     event StartAuction(

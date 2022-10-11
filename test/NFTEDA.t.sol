@@ -14,6 +14,7 @@ abstract contract NFTEDATest is Test {
     NFTEDA.Auction auction;
     TestERC721 nft = new TestERC721();
     TestERC20 erc20 = new TestERC20();
+    address nftOwner = address(0xdad);
     uint256 nftId = 1;
     uint256 decay = 0.9e18;
     uint256 secondsInPeriod = 1 days;
@@ -33,6 +34,7 @@ abstract contract NFTEDATest is Test {
 
     function setUp() public {
         auction = NFTEDA.Auction({
+            nftOwner: nftOwner,
             auctionAssetID: nftId,
             auctionAssetContract: nft,
             perPeriodDecayPercentWad: decay,
