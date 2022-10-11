@@ -14,21 +14,20 @@ contract NFTEDAStarterIncentive is NFTEDA {
     /// @notice The percent discount the creator of an auction should
     /// receive, compared to the current price
     /// 1e18 = 100%
-    uint256 public immutable auctionCreatorDiscountPercentWad;
-    uint256 internal immutable _pricePercentAfterDiscount;
+    uint256 public auctionCreatorDiscountPercentWad;
+    uint256 internal _pricePercentAfterDiscount;
 
     mapping(uint256 => AuctionState) public auctionState;
 
     constructor(uint256 _auctionCreatorDiscountPercentWad) {
-        auctionCreatorDiscountPercentWad = _auctionCreatorDiscountPercentWad;
-        _pricePercentAfterDiscount = FixedPointMathLib.WAD - _auctionCreatorDiscountPercentWad;
+        _setCreatorDiscount(_auctionCreatorDiscountPercentWad);
     }
 
-    function auctionStartTime(uint256 id) public view override returns (uint256) {
+    function auctionStartTime(uint256 id) public view virtual override returns (uint256) {
         return auctionState[id].startTime;
     }
 
-    function _setAuctionStartTime(uint256 id) internal override {
+    function _setAuctionStartTime(uint256 id) internal virtual override {
         auctionState[id] = AuctionState({
             startTime: uint96(block.timestamp),
             starter: msg.sender
@@ -49,5 +48,10 @@ contract NFTEDAStarterIncentive is NFTEDA {
         }
 
         return price;
+    }
+
+    function _setCreatorDiscount(uint256 _auctionCreatorDiscountPercentWad) internal virtual {
+        auctionCreatorDiscountPercentWad = _auctionCreatorDiscountPercentWad;
+        _pricePercentAfterDiscount = FixedPointMathLib.WAD - _auctionCreatorDiscountPercentWad;
     }
 }
