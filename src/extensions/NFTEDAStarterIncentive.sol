@@ -6,7 +6,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {NFTEDA} from "src/NFTEDA.sol";
 
 contract NFTEDAStarterIncentive is NFTEDA {
-    struct AuctionState{
+    struct AuctionState {
         uint96 startTime;
         address starter;
     }
@@ -28,17 +28,20 @@ contract NFTEDAStarterIncentive is NFTEDA {
     }
 
     function _setAuctionStartTime(uint256 id) internal virtual override {
-        auctionState[id] = AuctionState({
-            startTime: uint96(block.timestamp),
-            starter: msg.sender
-        });
+        auctionState[id] = AuctionState({startTime: uint96(block.timestamp), starter: msg.sender});
     }
 
     function _clearAuctionState(uint256 id) internal virtual override {
         delete auctionState[id];
     }
 
-    function _currentPrice(uint256 id, uint256 startTime, Auction memory auction) internal view virtual override returns (uint256) {
+    function _currentPrice(uint256 id, uint256 startTime, Auction memory auction)
+        internal
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         uint256 price = super._currentPrice(id, startTime, auction);
 
         if (msg.sender == auctionState[id].starter) {

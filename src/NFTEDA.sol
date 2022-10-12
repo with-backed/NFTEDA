@@ -79,11 +79,7 @@ abstract contract NFTEDA is INFTEDA {
 
         _clearAuctionState(id);
 
-        auction.auctionAssetContract.safeTransferFrom(
-            address(this),
-            msg.sender,
-            auction.auctionAssetID
-        );
+        auction.auctionAssetContract.safeTransferFrom(address(this), msg.sender, auction.auctionAssetID);
 
         auction.paymentAsset.transferFrom(msg.sender, address(this), price);
 
@@ -106,7 +102,12 @@ abstract contract NFTEDA is INFTEDA {
     /// @param startTime The start time of the auction
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function _currentPrice(uint256 id, uint256 startTime, Auction memory auction) internal view virtual returns (uint256) {
+    function _currentPrice(uint256 id, uint256 startTime, Auction memory auction)
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
         return EDAPrice.currentPrice(
             auction.startPrice, block.timestamp - startTime, auction.secondsInPeriod, auction.perPeriodDecayPercentWad
         );

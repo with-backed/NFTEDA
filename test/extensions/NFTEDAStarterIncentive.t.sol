@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "src/extensions/NFTEDAStarterIncentive.sol";
-import {NFTEDATest} from 'test/NFTEDA.t.sol';
+import {NFTEDATest} from "test/NFTEDA.t.sol";
 import {TestNFTEDAStarterIncentive} from "test/mocks/TestNFTEDAStarterIncentive.sol";
 
 contract NFTEDAStarterIncentiveTest is NFTEDATest {
@@ -16,7 +16,8 @@ contract NFTEDAStarterIncentiveTest is NFTEDATest {
         vm.warp(1 weeks);
         auction.auctionAssetID = 2;
         auctionContract.startAuction(auction);
-        (uint256 startTime, address starter) = NFTEDAStarterIncentive(address(auctionContract)).auctionState(auctionContract.auctionID(auction));
+        (uint256 startTime, address starter) =
+            NFTEDAStarterIncentive(address(auctionContract)).auctionState(auctionContract.auctionID(auction));
         assertEq(startTime, 1 weeks);
         assertEq(starter, address(this));
     }
@@ -36,7 +37,8 @@ contract NFTEDAStarterIncentiveTest is NFTEDATest {
     function testPurchaseNFTClearsState() public {
         vm.prank(purchaser);
         auctionContract.purchaseNFT(auction, startPrice);
-        (uint256 startTime, address starter) = NFTEDAStarterIncentive(address(auctionContract)).auctionState(auctionContract.auctionID(auction));
+        (uint256 startTime, address starter) =
+            NFTEDAStarterIncentive(address(auctionContract)).auctionState(auctionContract.auctionID(auction));
         assertEq(startTime, 0);
         assertEq(starter, address(0));
     }
