@@ -6,11 +6,13 @@ import {ERC721} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import "src/NFTEDA.sol";
+import {INFTEDA} from "src/interfaces/INFTEDA.sol";
 import {TestERC721} from "test/mocks/TestERC721.sol";
 import {TestERC20} from "test/mocks/TestERC20.sol";
+import {INFTEDAPublic} from "test/mocks/INFTEDAPublic.sol";
 
 abstract contract NFTEDATest is Test {
-    NFTEDA public auctionContract;
+    INFTEDAPublic public auctionContract;
     NFTEDA.Auction auction;
     TestERC721 nft = new TestERC721();
     TestERC20 erc20 = new TestERC20();
@@ -33,7 +35,7 @@ abstract contract NFTEDATest is Test {
     event EndAuction(uint256 indexed auctionID, uint256 price);
 
     function setUp() public {
-        auction = NFTEDA.Auction({
+        auction = INFTEDA.Auction({
             nftOwner: nftOwner,
             auctionAssetID: nftId,
             auctionAssetContract: nft,

@@ -3,12 +3,13 @@ pragma solidity >=0.8.0;
 
 import "src/extensions/NFTEDAStarterIncentive.sol";
 import {NFTEDATest} from 'test/NFTEDA.t.sol';
+import {TestNFTEDAStarterIncentive} from "test/mocks/TestNFTEDAStarterIncentive.sol";
 
 contract NFTEDAStarterIncentiveTest is NFTEDATest {
     uint256 discount = 0.1e18;
 
     function _createAuctionContract() internal override {
-        auctionContract = new NFTEDAStarterIncentive(discount);
+        auctionContract = new TestNFTEDAStarterIncentive(discount);
     }
 
     function testStartAuctionSavesStarter() public {
