@@ -6,14 +6,17 @@ import {ERC721} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import "src/NFTEDA.sol";
+import {INFTEDA} from "src/interfaces/INFTEDA.sol";
 import {TestERC721} from "test/mocks/TestERC721.sol";
 import {TestERC20} from "test/mocks/TestERC20.sol";
+import {INFTEDAPublic} from "test/mocks/INFTEDAPublic.sol";
 
 abstract contract NFTEDATest is Test {
-    NFTEDA public auctionContract;
+    INFTEDAPublic public auctionContract;
     NFTEDA.Auction auction;
     TestERC721 nft = new TestERC721();
     TestERC20 erc20 = new TestERC20();
+    address nftOwner = address(0xdad);
     uint256 nftId = 1;
     uint256 decay = 0.9e18;
     uint256 secondsInPeriod = 1 days;
@@ -32,7 +35,8 @@ abstract contract NFTEDATest is Test {
     event EndAuction(uint256 indexed auctionID, uint256 price);
 
     function setUp() public {
-        auction = NFTEDA.Auction({
+        auction = INFTEDA.Auction({
+            nftOwner: nftOwner,
             auctionAssetID: nftId,
             auctionAssetContract: nft,
             perPeriodDecayPercentWad: decay,
@@ -76,18 +80,18 @@ abstract contract NFTEDATest is Test {
         auctionContract.startAuction(auction);
     }
 
-    function testCurrentPrice() public {
+    function testAuctionCurrentPrice() public {
         vm.startPrank(address(1));
-        assertEq(auctionContract.currentPrice(auction), 1e18);
+        assertEq(auctionContract.auctionCurrentPrice(auction), 1e18);
         vm.warp(block.timestamp + 1 days);
         // off by 1, precise 1e17
-        assertEq(auctionContract.currentPrice(auction), 99999999999999999);
+        assertEq(auctionContract.auctionCurrentPrice(auction), 99999999999999999);
     }
 
-    function testCurrentPriceRevertsIfAuctionDoesNotExist() public {
+    function testAuctionCurrentPriceRevertsIfAuctionDoesNotExist() public {
         auction.auctionAssetID = 10;
         vm.expectRevert(NFTEDA.InvalidAuction.selector);
-        auctionContract.currentPrice(auction);
+        auctionContract.auctionCurrentPrice(auction);
     }
 
     function testPurchaseNFTEmitsEndAuction() public {
@@ -97,10 +101,10 @@ abstract contract NFTEDATest is Test {
         auctionContract.purchaseNFT(auction, startPrice);
     }
 
-    function testPurchaseNFTOnlyPaysCurrentPrice() public {
+    function testPurchaseNFTOnlyPaysAuctionCurrentPrice() public {
         vm.startPrank(purchaser);
         vm.warp(block.timestamp + 1 days);
-        uint256 price = auctionContract.currentPrice(auction);
+        uint256 price = auctionContract.auctionCurrentPrice(auction);
         auctionContract.purchaseNFT(auction, startPrice);
         assertEq(erc20.balanceOf(purchaser), startPrice - price);
     }
@@ -108,7 +112,7 @@ abstract contract NFTEDATest is Test {
     function testPurchaseNFTRevertsIfMaxPriceTooLow() public {
         vm.startPrank(purchaser);
         vm.warp(block.timestamp + 1 days);
-        uint256 price = auctionContract.currentPrice(auction);
+        uint256 price = auctionContract.auctionCurrentPrice(auction);
         uint256 maxPrice = price - 1;
         vm.expectRevert(abi.encodeWithSelector(NFTEDA.MaxPriceTooLow.selector, price, maxPrice));
         auctionContract.purchaseNFT(auction, maxPrice);
