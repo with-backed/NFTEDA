@@ -35,14 +35,14 @@ contract NFTEDAStarterIncentive is NFTEDA {
         delete auctionState[id];
     }
 
-    function _currentPrice(uint256 id, uint256 startTime, Auction memory auction)
+    function _auctionCurrentPrice(uint256 id, uint256 startTime, Auction memory auction)
         internal
         view
         virtual
         override
         returns (uint256)
     {
-        uint256 price = super._currentPrice(id, startTime, auction);
+        uint256 price = super._auctionCurrentPrice(id, startTime, auction);
 
         if (msg.sender == auctionState[id].starter) {
             price = FixedPointMathLib.mulWadUp(price, _pricePercentAfterDiscount);

@@ -40,7 +40,7 @@ interface INFTEDA {
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function currentPrice(Auction calldata auction) external view returns (uint256);
+    function auctionCurrentPrice(Auction calldata auction) external view returns (uint256);
 
     /// @notice Returns a uint256 used to identify the auction
     /// @dev Derived from the auction. Identitical auctions cannot exist simultaneously

@@ -19,14 +19,14 @@ abstract contract NFTEDA is INFTEDA {
     error MaxPriceTooLow(uint256 currentPrice, uint256 maxPrice);
 
     /// @inheritdoc INFTEDA
-    function currentPrice(Auction calldata auction) public view virtual returns (uint256) {
+    function auctionCurrentPrice(Auction calldata auction) public view virtual returns (uint256) {
         uint256 id = auctionID(auction);
         uint256 startTime = auctionStartTime(id);
         if (startTime == 0) {
             revert InvalidAuction();
         }
 
-        return _currentPrice(id, startTime, auction);
+        return _auctionCurrentPrice(id, startTime, auction);
     }
 
     /// @inheritdoc INFTEDA
@@ -71,7 +71,7 @@ abstract contract NFTEDA is INFTEDA {
         if (startTime == 0) {
             revert InvalidAuction();
         }
-        uint256 price = _currentPrice(id, startTime, auction);
+        uint256 price = _auctionCurrentPrice(id, startTime, auction);
 
         if (price > maxPrice) {
             revert MaxPriceTooLow(price, maxPrice);
@@ -102,7 +102,7 @@ abstract contract NFTEDA is INFTEDA {
     /// @param startTime The start time of the auction
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function _currentPrice(uint256 id, uint256 startTime, Auction memory auction)
+    function _auctionCurrentPrice(uint256 id, uint256 startTime, Auction memory auction)
         internal
         view
         virtual
