@@ -9,7 +9,7 @@ contract TestSimpleNFTEDA is INFTEDAPublic, SimpleNFTEDA {
         return _startAuction(auction);
     }
 
-    function purchaseNFT(Auction memory auction, uint256 maxPrice) external {
-        _purchaseNFT(auction, maxPrice);
+    function purchaseNFT(Auction memory auction, uint256 maxPrice, address sendTo) external {
+        _purchaseNFT(auction, maxPrice, sendTo);
     }
 }
