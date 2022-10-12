@@ -98,14 +98,20 @@ abstract contract NFTEDATest is Test {
         vm.startPrank(purchaser);
         vm.expectEmit(true, true, true, true);
         emit EndAuction(auctionContract.auctionID(auction), startPrice);
-        auctionContract.purchaseNFT(auction, startPrice);
+        auctionContract.purchaseNFT(auction, startPrice, purchaser);
+    }
+
+    function testPurchaseNFTTransferCorrectly() public {
+        vm.startPrank(purchaser);
+        auctionContract.purchaseNFT(auction, startPrice, address(1));
+        assertEq(auction.auctionAssetContract.ownerOf(auction.auctionAssetID), address(1));
     }
 
     function testPurchaseNFTOnlyPaysAuctionCurrentPrice() public {
         vm.startPrank(purchaser);
         vm.warp(block.timestamp + 1 days);
         uint256 price = auctionContract.auctionCurrentPrice(auction);
-        auctionContract.purchaseNFT(auction, startPrice);
+        auctionContract.purchaseNFT(auction, startPrice, purchaser);
         assertEq(erc20.balanceOf(purchaser), startPrice - price);
     }
 
@@ -115,19 +121,19 @@ abstract contract NFTEDATest is Test {
         uint256 price = auctionContract.auctionCurrentPrice(auction);
         uint256 maxPrice = price - 1;
         vm.expectRevert(abi.encodeWithSelector(NFTEDA.MaxPriceTooLow.selector, price, maxPrice));
-        auctionContract.purchaseNFT(auction, maxPrice);
+        auctionContract.purchaseNFT(auction, maxPrice, purchaser);
     }
 
     function testPurchaseNFTRevertsIfTransferFails() public {
         vm.startPrank(purchaser);
         erc20.approve(address(auctionContract), startPrice - 1);
         vm.expectRevert(stdError.arithmeticError);
-        auctionContract.purchaseNFT(auction, startPrice);
+        auctionContract.purchaseNFT(auction, startPrice, purchaser);
     }
 
     function testPurchaseNFTClearsStartTime() public {
         vm.prank(purchaser);
-        auctionContract.purchaseNFT(auction, startPrice);
+        auctionContract.purchaseNFT(auction, startPrice, purchaser);
         assertEq(auctionContract.auctionStartTime(auctionContract.auctionID(auction)), 0);
     }
 

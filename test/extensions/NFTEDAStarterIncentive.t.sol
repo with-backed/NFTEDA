@@ -31,12 +31,12 @@ contract NFTEDAStarterIncentiveTest is NFTEDATest {
         auctionContract.startAuction(auction);
         erc20.mint(address(this), discountPrice);
         erc20.approve(address(auctionContract), discountPrice);
-        auctionContract.purchaseNFT(auction, discountPrice);
+        auctionContract.purchaseNFT(auction, discountPrice, purchaser);
     }
 
     function testPurchaseNFTClearsState() public {
         vm.prank(purchaser);
-        auctionContract.purchaseNFT(auction, startPrice);
+        auctionContract.purchaseNFT(auction, startPrice, purchaser);
         (uint256 startTime, address starter) =
             NFTEDAStarterIncentive(address(auctionContract)).auctionState(auctionContract.auctionID(auction));
         assertEq(startTime, 0);

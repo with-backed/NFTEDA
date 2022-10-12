@@ -64,7 +64,7 @@ abstract contract NFTEDA is INFTEDA {
     /// @notice purchases the NFT being sold in `auction`, reverts if current auction price exceed maxPrice
     /// @param auction The auction selling the NFT
     /// @param maxPrice The maximum the caller is willing to pay
-    function _purchaseNFT(Auction memory auction, uint256 maxPrice) internal virtual {
+    function _purchaseNFT(Auction memory auction, uint256 maxPrice, address sendTo) internal virtual {
         uint256 id = auctionID(auction);
         uint256 startTime = auctionStartTime(id);
 
@@ -79,7 +79,7 @@ abstract contract NFTEDA is INFTEDA {
 
         _clearAuctionState(id);
 
-        auction.auctionAssetContract.safeTransferFrom(address(this), msg.sender, auction.auctionAssetID);
+        auction.auctionAssetContract.safeTransferFrom(address(this), sendTo, auction.auctionAssetID);
 
         auction.paymentAsset.transferFrom(msg.sender, address(this), price);
 
