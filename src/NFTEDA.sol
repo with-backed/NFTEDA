@@ -19,7 +19,7 @@ abstract contract NFTEDA is INFTEDA {
     error MaxPriceTooLow(uint256 currentPrice, uint256 maxPrice);
 
     /// @inheritdoc INFTEDA
-    function auctionCurrentPrice(Auction calldata auction) public view virtual returns (uint256) {
+    function auctionCurrentPrice(INFTEDA.Auction calldata auction) public view virtual returns (uint256) {
         uint256 id = auctionID(auction);
         uint256 startTime = auctionStartTime(id);
         if (startTime == 0) {
@@ -30,7 +30,7 @@ abstract contract NFTEDA is INFTEDA {
     }
 
     /// @inheritdoc INFTEDA
-    function auctionID(Auction memory auction) public pure virtual returns (uint256) {
+    function auctionID(INFTEDA.Auction memory auction) public pure virtual returns (uint256) {
         return uint256(keccak256(abi.encode(auction)));
     }
 
@@ -41,7 +41,7 @@ abstract contract NFTEDA is INFTEDA {
     /// @dev assumes the nft being sold is already controlled by the auction contract
     /// @param auction The defintion of the auction
     /// @return id the id of the auction
-    function _startAuction(Auction memory auction) internal virtual returns (uint256 id) {
+    function _startAuction(INFTEDA.Auction memory auction) internal virtual returns (uint256 id) {
         id = auctionID(auction);
 
         if (auctionStartTime(id) != 0) {
@@ -64,7 +64,7 @@ abstract contract NFTEDA is INFTEDA {
     /// @notice purchases the NFT being sold in `auction`, reverts if current auction price exceed maxPrice
     /// @param auction The auction selling the NFT
     /// @param maxPrice The maximum the caller is willing to pay
-    function _purchaseNFT(Auction memory auction, uint256 maxPrice, address sendTo)
+    function _purchaseNFT(INFTEDA.Auction memory auction, uint256 maxPrice, address sendTo)
         internal
         virtual
         returns (uint256 price)
@@ -106,7 +106,7 @@ abstract contract NFTEDA is INFTEDA {
     /// @param startTime The start time of the auction
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
-    function _auctionCurrentPrice(uint256 id, uint256 startTime, Auction memory auction)
+    function _auctionCurrentPrice(uint256 id, uint256 startTime, INFTEDA.Auction memory auction)
         internal
         view
         virtual

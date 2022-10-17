@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
+import {INFTEDA} from "src/interfaces/INFTEDA.sol";
 import {NFTEDA} from "src/NFTEDA.sol";
 
 contract NFTEDAStarterIncentive is NFTEDA {
@@ -35,7 +36,7 @@ contract NFTEDAStarterIncentive is NFTEDA {
         delete auctionState[id];
     }
 
-    function _auctionCurrentPrice(uint256 id, uint256 startTime, Auction memory auction)
+    function _auctionCurrentPrice(uint256 id, uint256 startTime, INFTEDA.Auction memory auction)
         internal
         view
         virtual
