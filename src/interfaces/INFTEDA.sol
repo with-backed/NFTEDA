@@ -29,6 +29,7 @@ interface INFTEDA {
         uint256 indexed auctionID,
         uint256 indexed auctionAssetID,
         ERC721 indexed auctionAssetContract,
+        address nftOwner,
         uint256 perPeriodDecayPercentWad,
         uint256 secondsInPeriod,
         uint256 startPrice,

@@ -54,6 +54,7 @@ abstract contract NFTEDA is INFTEDA {
             id,
             auction.auctionAssetID,
             auction.auctionAssetContract,
+            auction.nftOwner,
             auction.perPeriodDecayPercentWad,
             auction.secondsInPeriod,
             auction.startPrice,
