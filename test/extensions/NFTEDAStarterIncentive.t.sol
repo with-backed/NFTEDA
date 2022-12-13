@@ -6,10 +6,18 @@ import {NFTEDATest} from "test/NFTEDA.t.sol";
 import {TestNFTEDAStarterIncentive} from "test/mocks/TestNFTEDAStarterIncentive.sol";
 
 contract NFTEDAStarterIncentiveTest is NFTEDATest {
+    event SetAuctionCreatorDiscount(uint256 discount);
+
     uint256 discount = 0.1e18;
 
     function _createAuctionContract() internal override {
         auctionContract = new TestNFTEDAStarterIncentive(discount);
+    }
+
+    function testEmitsSetCreatorDiscount() public {
+        vm.expectEmit(false, false, false, true);
+        emit SetAuctionCreatorDiscount(discount);
+        _createAuctionContract();
     }
 
     function testStartAuctionSavesStarter() public {

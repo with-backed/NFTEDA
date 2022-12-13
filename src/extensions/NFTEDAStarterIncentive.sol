@@ -12,6 +12,12 @@ contract NFTEDAStarterIncentive is NFTEDA {
         address starter;
     }
 
+    /// @notice emitted when auction creator discount is set
+    /// @param discount the new auction creator discount
+    /// expressed as a percent scaled by 1e18
+    /// i.e. 1e18 = 100%
+    event SetAuctionCreatorDiscount(uint256 discount);
+
     /// @notice The percent discount the creator of an auction should
     /// receive, compared to the current price
     /// 1e18 = 100%
@@ -55,5 +61,7 @@ contract NFTEDAStarterIncentive is NFTEDA {
     function _setCreatorDiscount(uint256 _auctionCreatorDiscountPercentWad) internal virtual {
         auctionCreatorDiscountPercentWad = _auctionCreatorDiscountPercentWad;
         _pricePercentAfterDiscount = FixedPointMathLib.WAD - _auctionCreatorDiscountPercentWad;
+
+        emit SetAuctionCreatorDiscount(_auctionCreatorDiscountPercentWad);
     }
 }
