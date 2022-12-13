@@ -14,17 +14,26 @@ interface INFTEDA {
         uint256 auctionAssetID;
         // the nft contract address
         ERC721 auctionAssetContract;
-        // How much the auction price should decay in each period
+        // How much the auction price will decay in each period
         // expressed as percent scaled by 1e18, i.e. 1e18 = 100%
         uint256 perPeriodDecayPercentWad;
         // the number of seconds in the period over which perPeriodDecay occurs
         uint256 secondsInPeriod;
         // the auction start price
         uint256 startPrice;
-        // the payment asset
+        // the payment asset and quote asset for startPrice
         ERC20 paymentAsset;
     }
 
+    /// @notice emitted when an auction is started
+    /// @param auctionID the id of the auction that was started
+    /// @param auctionAssetID the token id of the ERC721 asset being auctioned
+    /// @param auctionAssetContract the contract address of the ERC721 asset being auctioned
+    /// @param nftOwner the owner of the ERC721 asset being auctioned
+    /// @param perPeriodDecayPercentWad How much the auction price will decay in each period
+    /// @param secondsInPeriod the number of seconds in the period over which perPeriodDecay occurs
+    /// @param startPrice the starting price of the auction
+    /// @param paymentAsset the payment asset and quote asset for startPrice
     event StartAuction(
         uint256 indexed auctionID,
         uint256 indexed auctionAssetID,
@@ -36,6 +45,8 @@ interface INFTEDA {
         ERC20 paymentAsset
     );
 
+    /// @param auctionID the id of the auction that has ended
+    /// @param price the price that the purchaser paid to receive the ERC721 asset being auctioned
     event EndAuction(uint256 indexed auctionID, uint256 price);
 
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
