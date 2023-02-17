@@ -7,9 +7,9 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import "src/NFTEDA.sol";
 import {INFTEDA} from "src/interfaces/INFTEDA.sol";
-import {TestERC721} from "test/mocks/TestERC721.sol";
-import {TestERC20} from "test/mocks/TestERC20.sol";
-import {INFTEDAPublic} from "test/mocks/INFTEDAPublic.sol";
+import {TestERC721} from "./mocks/TestERC721.sol";
+import {TestERC20} from "./mocks/TestERC20.sol";
+import {INFTEDAPublic} from "./mocks/INFTEDAPublic.sol";
 
 abstract contract NFTEDATest is Test {
     INFTEDAPublic public auctionContract;
@@ -129,7 +129,7 @@ abstract contract NFTEDATest is Test {
     function testPurchaseNFTRevertsIfTransferFails() public {
         vm.startPrank(purchaser);
         erc20.approve(address(auctionContract), startPrice - 1);
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         auctionContract.purchaseNFT(auction, startPrice, purchaser);
     }
 

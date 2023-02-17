@@ -3,12 +3,14 @@ pragma solidity >=0.8.0;
 
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
-import {SafeCast} from "v3-core/contracts/libraries/SafeCast.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
-import {INFTEDA} from "src/interfaces/INFTEDA.sol";
-import {EDAPrice} from "src/libraries/EDAPrice.sol";
+import {INFTEDA} from "./interfaces/INFTEDA.sol";
+import {EDAPrice} from "./libraries/EDAPrice.sol";
 
 abstract contract NFTEDA is INFTEDA {
+    using SafeTransferLib for ERC20;
+
     error AuctionExists();
     error InvalidAuction();
     /// @param received The amount of payment received
@@ -39,6 +41,8 @@ abstract contract NFTEDA is INFTEDA {
 
     /// @notice Creates an auction defined by the passed `auction`
     /// @dev assumes the nft being sold is already controlled by the auction contract
+    /// @dev does no validation the auction, aside that it does not exist.
+    /// @dev if paymentAsset = address(0), purchase will not revert
     /// @param auction The defintion of the auction
     /// @return id the id of the auction
     function _startAuction(INFTEDA.Auction memory auction) internal virtual returns (uint256 id) {
@@ -68,15 +72,10 @@ abstract contract NFTEDA is INFTEDA {
     function _purchaseNFT(INFTEDA.Auction memory auction, uint256 maxPrice, address sendTo)
         internal
         virtual
-        returns (uint256 price)
+        returns (uint256 startTime, uint256 price)
     {
-        uint256 id = auctionID(auction);
-        uint256 startTime = auctionStartTime(id);
-
-        if (startTime == 0) {
-            revert InvalidAuction();
-        }
-        price = _auctionCurrentPrice(id, startTime, auction);
+        uint256 id;
+        (id, startTime, price) = _checkAuctionAndReturnDetails(auction);
 
         if (price > maxPrice) {
             revert MaxPriceTooLow(price, maxPrice);
@@ -86,9 +85,23 @@ abstract contract NFTEDA is INFTEDA {
 
         auction.auctionAssetContract.safeTransferFrom(address(this), sendTo, auction.auctionAssetID);
 
-        auction.paymentAsset.transferFrom(msg.sender, address(this), price);
+        auction.paymentAsset.safeTransferFrom(msg.sender, address(this), price);
 
         emit EndAuction(id, price);
+    }
+
+    function _checkAuctionAndReturnDetails(INFTEDA.Auction memory auction)
+        internal
+        view
+        returns (uint256 id, uint256 startTime, uint256 price)
+    {
+        id = auctionID(auction);
+        startTime = auctionStartTime(id);
+
+        if (startTime == 0) {
+            revert InvalidAuction();
+        }
+        price = _auctionCurrentPrice(id, startTime, auction);
     }
 
     /// @notice Sets the time at which the auction was started
@@ -104,6 +117,7 @@ abstract contract NFTEDA is INFTEDA {
     /// @notice Returns the current price of the passed auction, reverts if no such auction exists
     /// @dev startTime is passed, optimized for cases where the auctionId has already been computed
     /// @dev and startTime looked it up
+    /// @param id The ID of the auction
     /// @param startTime The start time of the auction
     /// @param auction The auction for which the caller wants to know the current price
     /// @return price the current amount required to purchase the NFT being sold in this auction
